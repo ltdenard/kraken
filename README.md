@@ -2,6 +2,8 @@
 I want to first put this at the top as I wouldn't be able to even attempt this without the head-start the folks over at Secure Auth Corp gave me with impacket. What their module lacked, I added in. The main item being multiprocessing for large domain ntds.dit files.
 https://github.com/SecureAuthCorp/impacket
 
+# What is Kraken?
+Kraken is a way to automating cracking jobs, but not just the hashcat part, but also pulling them and formating the hashes to be cracked as well as all the parsing that needs to happen upfront.
 
 # Setup
 ## install system dependancies
