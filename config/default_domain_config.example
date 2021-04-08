@@ -1,0 +1,7 @@
+{
+    "basedir": "/path/to/kraken",
+    "hashcatpath": "/path/to/hashcat",
+    "smblcientpath": "/path/to/smbclient",
+    "pythonpath": "/path/to/python",
+    "example.com": "/path/to/example_creds.cfg"
+}

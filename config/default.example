@@ -1,0 +1,12 @@
+[base]
+username=Administrator
+password=password
+domain=example.com
+hostname=192.168.1.100
+dist_name=CN=Administrator,CN=Users,DC=example,DC=com
+base_dn=DC=example,DC=com
+linux_hostname=ldap.example.com
+linux_base_dn=dc=example,dc=COM
+linux_user_dn=cn=admin,dc=example,dc=com
+linux_password=password
+pgp_password_file=/path/to/password.txt

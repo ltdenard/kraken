@@ -1,0 +1,8 @@
+*.cfg
+*.json
+wordlists/*
+hashes/*
+automated/inbound/*
+automated/status/*
+cracked/*
+potfiles/*

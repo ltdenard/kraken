@@ -1,0 +1,14 @@
+[Unit]
+Description=krakenworker
+After=network.target
+
+[Service]
+Type=simple
+Environment=PYTHONIOENCODING=utf8
+User=root
+WorkingDirectory=/path/to/kraken
+ExecStart=/path/to/python/venv /path/to/kraken_worker.py
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
