@@ -736,6 +736,72 @@ class KrakenMaster():
                 print(e)
         return False
 
+    def linux_ldap_lookup(self, inputFile, outputFile):
+        if self.linux_ldap_host and self.linux_ldap_base_dn and self.linux_ldap_user_dn:
+            try:
+                LDAP_BASE = self.linux_ldap_base_dn
+                ATTRIBUTES = ["dn", "cn", "uid", "displayName"]
+                ldap.set_option(
+                    ldap.OPT_X_TLS_REQUIRE_CERT,
+                    ldap.OPT_X_TLS_NEVER)
+                ldap.set_option(ldap.OPT_REFERRALS, 0)
+                con = ldap.initialize('ldaps://{}:636'.format(self.linux_ldap_host))
+                con.simple_bind_s(
+                    self.linux_ldap_user_dn,
+                    self.linux_ldap_password)
+                with open(outputFile, 'w', newline='\n') as csvoutfile:
+                    csv_out_writer = csv.writer(
+                        csvoutfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    csv_out_writer.writerow([
+                        "domain",
+                        "uid"
+                        "displayName",
+                        "dn",
+                        "cn",
+                        "password_length"
+                    ])
+                    with open(inputFile, newline='\n') as csvfile:
+                        crack_reader = csv.reader(
+                            csvfile, delimiter=',', quotechar='"')
+                        for line in crack_reader:
+                            username = line[1]
+                            passlength = line[2]
+                            query = "(uid={})".format(username)
+                            try:
+                                user = con.search_s(
+                                    LDAP_BASE, ldap.SCOPE_SUBTREE, query, ATTRIBUTES)[0][1]
+                                dn = ""
+                                if "dn" in user:
+                                    dn = user.get("dn")[0].decode()
+                                cn = ""
+                                if "cn" in user:
+                                    cn = user.get("cn")[0].decode()
+                                display_name = ""
+                                if "displayName" in user:
+                                    display_name = user.get("displayName")[0].decode()
+                                csv_out_writer.writerow([
+                                    self.domain,
+                                    username,
+                                    display_name,
+                                    dn,
+                                    cn,
+                                    passlength
+                                ])
+                            except Exception as e:
+                                print(e)
+                                csv_out_writer.writerow([
+                                    self.domain,
+                                    username,
+                                    "",
+                                    "",
+                                    "",
+                                    passlength
+                                ])
+                return True
+            except ldap.LDAPError as e:
+                print(e)
+        return False
+
     def pull_ldap_hashes(self):
         if self.linux_ldap_host and self.linux_ldap_base_dn and self.linux_ldap_user_dn:
             try:
@@ -1028,6 +1094,16 @@ class KrakenMaster():
         if ldap_lookup_cmd:
             return True
         return False
+    
+    def run_linux_ldap_lookup(self):
+        self.write_log(self.uuid_key, "doing ldap lookups...", overwrite=False)
+        ldap_lookup_cmd = self.linux_ldap_lookup(
+            "{}cracked_{}.csv".format(
+                self.cracked_dir, self.start_time), "{}cracked_ldap_{}.csv".format(
+                self.cracked_dir, self.start_time))
+        if ldap_lookup_cmd:
+            return True
+        return False
 
     def write_stats_to_log(self):
         cracked_count = 0
@@ -1174,10 +1250,18 @@ class KrakenMaster():
         if result1:
             result2 = self.pull_ldap_hashes()
             if result2:
-                result3 = self.run_hashcat(hash_mode)
+                if self.alternate_hashcat_job == "full8":
+                    result3 = self.run_hashcat_charset_full8(hash_mode)
+                elif self.alternate_hashcat_job == "human8":
+                    result3 = self.run_hashcat_charset_human8(hash_mode)
+                else:
+                    result3 = self.run_hashcat(hash_mode)
                 if result3:
-                    # TODO: insert ldap lookup
-                    return True
+                    if ldap_lookup:
+                        self.run_linux_ldap_lookup()
+                    result5 = self.write_stats_to_log()
+                    if result5:
+                        return True
         return False
 
 
@@ -1290,12 +1374,9 @@ def main():
 
 
 if __name__ == '__main__':
-    """
     while True:
         try:
             main()
         except Exception as e:
             print(e)
         sleep(10)
-"""
-    main()
