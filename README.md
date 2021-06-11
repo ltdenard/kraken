@@ -3,7 +3,7 @@ I want to first put this at the top as I wouldn't be able to even attempt this w
 https://github.com/SecureAuthCorp/impacket
 
 # What is Kraken?
-Kraken is a way to automating cracking jobs, but not just the hashcat part, but also pulling them and formating the hashes to be cracked as well as all the parsing that needs to happen upfront.
+Kraken is a way to automate cracking jobs, but not just the hashcat part, but also pulling them and formating the hashes to be cracked as well as all the parsing that needs to happen upfront.
 
 # Setup
 ## install system dependancies
