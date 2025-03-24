@@ -1,200 +1,94 @@
-# Credits
-I want to first put this at the top as I wouldn't be able to even attempt this without the head-start the folks over at Secure Auth Corp gave me with impacket. What their module lacked, I added in. The main item being multiprocessing for large domain ntds.dit files.
-https://github.com/SecureAuthCorp/impacket
+# 🐙 Kraken
 
-# What is Kraken?
-Kraken is a way to automate cracking jobs, but not just the hashcat part, but also pulling them and formating the hashes to be cracked as well as all the parsing that needs to happen upfront.
+Kraken is an automation tool designed to streamline the process of extracting and cracking password hashes from Active Directory (AD) environments. Built on top of [Impacket](https://github.com/SecureAuthCorp/impacket), Kraken adds multiprocessing and automation to handle large `ntds.dit` files efficiently.
 
-# Setup
-## install system dependancies
-```
+---
+
+## 🎯 Features
+
+- 🔐 Automated hash extraction from `ntds.dit`
+- ⚡ Multiprocessing for faster processing of large datasets
+- 🧩 Seamless integration with Hashcat
+- 🛠️ Designed for red teamers, CTF players, and AD researchers
+
+---
+
+## 🛠️ Setup
+
+### ✅ Requirements
+
+- **Samba Client** (for interacting with SMB shares):
+
+```bash
 sudo yum install samba-client
 ```
-## setup python virtual environment(python 3.9.2)
-```
+
+- **Python 3.9.2** (Kraken is tested with this version)
+
+### 🔧 Virtual Environment Setup
+
+```bash
 python3.9 -m venv ./venv
 source ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## update your systemd file( krakenworker.service) if you choose to run this as a service
-### replace the WorkingDirectory and ExecStart with the correct paths
-### install the systemd service file and reload
-```
-cp ./krakenworker.service /lib/systemd/system/
-chmod 644 /lib/systemd/system/krakenworker.service
-systemctl daemon-reload
-systemctl enabled krakenworker
+---
+
+## ⚙️ Optional: Run as a Systemd Service
+
+To run Kraken in the background as a service:
+
+1. **Edit `krakenworker.service`**:  
+   Update these two fields:
+   - `WorkingDirectory=` → path to your Kraken repo
+   - `ExecStart=` → path to your Python binary and `kraken_worker.py`
+
+2. **Install the service**:
+
+```bash
+sudo cp krakenworker.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable krakenworker.service
+sudo systemctl start krakenworker.service
 ```
 
-## next, setup the default_domain_config.json
-### update the following. you need a mapping for each domain you plan to crack on. 
-```
-{
-    "basedir": "/path/to/kraken",
-    "hashcatpath": "/path/to/hashcat",
-    "smblcientpath": "/path/to/smbclient",
-    "pythonpath": "/path/to/python",
-    "example.com": "/path/to/example_creds.cfg"
-}
+3. **Check the service**:
+
+```bash
+sudo systemctl status krakenworker.service
 ```
 
-## finally, use the default.example to make your .cfg for your domain.
-### again, make sure to make a line for each domain. If you have a split domain for linux ldap and windows ldap,
-### fill out all fields.
-```
-[base]
-username=Administrator
-password=password
-domain=example.com
-hostname=192.168.1.100
-dist_name=CN=Administrator,CN=Users,DC=example,DC=com
-base_dn=DC=example,DC=com
-linux_hostname=ldap.example.com
-linux_base_dn=dc=example,dc=COM
-linux_user_dn=cn=admin,dc=example,dc=com
-linux_password=password
-pgp_password_file=/path/to/password.txt
+---
+
+## 🚀 Usage
+
+1. Activate your virtual environment:
+
+```bash
+source ./venv/bin/activate
 ```
 
-# Using GPG
-## generate keys
-### this has to be done as the user you plan to run this app as
-```
-gpg --full-generate-key
+2. Run the worker:
+
+```bash
+python kraken_worker.py
 ```
 
-## export public key
-```
-gpg --output kraken.pub --armor --export here@there.me
-```
+Make sure any required input files (e.g., `ntds.dit`, SYSTEM hive) are present or configured correctly for your pipeline.
 
-## ecrypt file. this produces filename.txt.asc
-```
-gpg --encrypt --sign --armor -r here@there.me filename.txt
-```
+---
 
-## decrypt file
-```
-gpg --decrypt --pinentry-mode loopback --batch --passphrase-file password.txt filename.txt.asc > filename.txt
-```
+## 🧠 Credits
 
-# Using the Kraken Worker
+Kraken is powered by modified version of [Impacket](https://github.com/SecureAuthCorp/impacket) — a phenomenal library by the folks at SecureAuth. Big thanks to them!
 
-## Since all jobs are meant to be scheduled, we create a json like one of the following and drop them in 
-## $basedir/data/automated/inbound
-### current json options
-```
-{
-    "domain":"example.com",
-    "cracktype": ad,ldap,other
-    "offline_crack": false,
-    "ldap_lookup": false,
-    "encrypted": false,
-    "dropped_files": false,
-    "hash_mode": 1000,
-    "ntds_file_path": "",
-    "bootkey_file_path": "",
-    "wordlist": "",
-    "transforms": "",
-    "hashes_file": "",
-    "althashcatjob": full8,human8
-}
-```
+---
 
-### options for live AD pull and crack
-```
-{
-    "domain":"example.com",
-    "cracktype": "ad",
-    "offline_crack": false,
-    "ldap_lookup": true,
-    "encrypted": false,
-    "dropped_files": false,
-    "hash_mode": 1000,
-    "ntds_file_path": "",
-    "bootkey_file_path": "",
-    "wordlist": "",
-    "transforms": "",
-    "hashes_file": "",
-    "althashcatjob": ""
-}
-```
-### options for an offline AD crack but files where dropped into the dropzone(unencrypted) and doing an ldap lookup
-```
-{
-    "domain":"example.com",
-    "cracktype": "ad",
-    "offline_crack": true,
-    "ldap_lookup": true,
-    "encrypted": false,
-    "dropped_files": true,
-    "hash_mode": 1000,
-    "ntds_file_path": "",
-    "bootkey_file_path": "",
-    "wordlist": "",
-    "transforms": "",
-    "hashes_file": "",
-    "althashcatjob": ""
-}
-```
-### options for a truly disconnected, encrypted files dropped in the dropzone
-```
-{
-    "domain":"example.com",
-    "cracktype": "ad",
-    "offline_crack": true,
-    "ldap_lookup": false,
-    "encrypted": true,
-    "dropped_files": true,
-    "hash_mode": 1000,
-    "ntds_file_path": "",
-    "bootkey_file_path": "",
-    "wordlist": "",
-    "transforms": "",
-    "hashes_file": "",
-    "althashcatjob": ""
-}
-```
-### options for live ldap pull looks like this.
-```
-{
-    "domain":"example.com",
-    "cracktype": "ldap",
-    "offline_crack": false,
-    "ldap_lookup": false,
-    "encrypted": false,
-    "dropped_files": false,
-    "hash_mode": 111,
-    "ntds_file_path": "",
-    "bootkey_file_path": "",
-    "wordlist": "",
-    "transforms": "",
-    "hashes_file": "",
-    "althashcatjob": ""
-}
-```
+## ⚠️ Legal Disclaimer
 
-### options for other... technically you don't need to have domain cfg setup for other cracks, but it would be useful if you're using the dropzone or GPG encryption
-```
-{
-    "domain":"example.com",
-    "cracktype": "other",
-    "offline_crack": false,
-    "ldap_lookup": false,
-    "encrypted": false,
-    "dropped_files": false,
-    "hash_mode": 1000,
-    "ntds_file_path": "/path/to/ntds.dit",
-    "bootkey_file_path": "/path/to/system",
-    "wordlist": "",
-    "transforms": "",
-    "hashes_file": "/or/path/to/hashes/file.txt",
-    "althashcatjob": ""
-}
-```
+This tool is intended for **authorized** use only. You must have **explicit permission** to perform hash extraction or password cracking on any systems you target with Kraken. Unauthorized use may be illegal and is strictly discouraged.
 
+---
 
-# TODOs
-add more stuff like this:
-https://github.com/travco/rephraser
+> “With great power comes great responsibility.” – Uncle Ben
